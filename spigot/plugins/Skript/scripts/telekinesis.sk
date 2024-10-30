@@ -1,0 +1,86 @@
+command /spawn:
+    trigger:
+        teleport player to location(0.5, 64, 0.5, world "world")
+
+on respawn:
+    teleport player to location(0.5, 64, 0.5, world "world")
+
+
+on load:
+    delete {request::*}
+
+command /tpa [<offline player>]:
+    trigger:
+        set {_p} to arg-1 
+        set {_u} to uuid of arg-1
+        if {_p} is online:
+            if {_p} is not player:
+                if {request::player::%{_u}%} is set:
+                    send "&cThis player already has a active teleportation request, please wait!" to player
+                    stop
+                send "&2%player% &ahas requested to teleport to you! &7&o(/tpaccept to accept, automatically expires in 30 seconds)" to {_p}
+                send "&aYou have requested to teleport to &2%{_p}%&a! &7&o(This will automatically expire in 30 seconds)" to player
+                set {request::player::%{_u}%} to player
+                wait 30 seconds
+                if {request::player::%{_u}%} is set:
+                    delete {request::player::%{_u}%}
+                    send "&CYour teleportation request to %{_p}% &chas expired!" to player
+                    send "&cYour teleportation request from %player% &chas expired!" to {_p}
+            else:
+                send "&cYou can't tpa to yourself!" to player
+        else:
+            send "&cThe specified player is currently offline!" to player
+
+command /tpaccept:
+    trigger:
+        set {_u} to uuid of player
+        if {request::player::%{_u}%} is set:
+            set {_p} to {request::player::%{_u}%}
+            if {_p} is online:
+                teleport {_p} to location of player
+                send "&aYour teleportation request to %player% &ahas been accepted!" to {_p}
+                send "&aYou have accepted the teleportation request from %{_p}%" to player
+                delete {request::player::%{_u}%}
+            else:
+                send "&cThis player is no longer online!"
+        else:
+            send "&cYou have no teleportation requests to accept!" to player
+
+command /pvp:
+    trigger:
+        if {pvp.%player%} is true:
+            set {pvp.%player%} to false
+            send "&7You turned pvp &c&lOFF" to player
+        else:
+            set {pvp.%player%} to true
+            send "&7You turned pvp &a&lON" to player
+
+on damage:
+    if attacker and victim is a player:
+        if {pvp.%attacker%} is not true:
+            cancel event
+            send "&cYou cannot attack players while /pvp is turned off." to attacker
+        else:
+            if {pvp.%victim%} is not true:
+                cancel event
+                send "&cYou cannot attack players who haven't turned on pvp." to attacker
+
+command /ec:
+    aliases: /enderchest
+    trigger:
+        open player's ender chest to player
+
+
+on chat:
+    cancel event
+    broadcast "&f%player% &7➤ &r&f%message%"
+
+command /help:
+    aliases: /?, /commands, /cmds
+    trigger:
+        send "&6&lCOMMANDS:"
+        send "  &a/ec: &fOpens your private ender chest!"
+        send "  &a/tpa <player>: &fRequest to teleport to someone!"
+        send "  &a/tpaccept <player>: &fAccept a teleport request!"
+        send "  &a/spawn: &fTeleport to spawn!"
+        send "  &a/pvp: &fToggle pvp!"
